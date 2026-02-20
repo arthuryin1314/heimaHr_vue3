@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
     Clock,
     Key,
@@ -8,14 +8,19 @@ import {
     Money,
     Odometer,
     OfficeBuilding,
+    Setting,
     Stamp,
     Tickets,
     User,
-    UserFilled,
-    Setting
+    UserFilled
 } from '@element-plus/icons-vue'
-const isCollapse = ref(false)
+import { getUserInfo, updatePassword } from '@/api/role'
+import { useLoginStore } from '@/stores/login'
+
+const router = useRouter()
 const route = useRoute()
+const loginStore = useLoginStore()
+const isCollapse = ref(false)
 
 const menuTitleMap = {
     '/dashboard': '首页',
@@ -40,10 +45,9 @@ const breadcrumbItems = computed(() => {
         { label: currentTitle, path: route.path }
     ]
 })
-//获取用户资料
-import { getUserInfo } from '@/api/role'
-let staffPhoto = ref('')
-let username = ref('')
+
+const staffPhoto = ref('')
+const username = ref('')
 async function getUser() {
     const res = await getUserInfo()
     staffPhoto.value = res.data?.staffPhoto || ''
@@ -52,12 +56,67 @@ async function getUser() {
 onMounted(() => {
     getUser()
 })
+
+const dialogFormVisible = ref(false)
+const form = ref({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+})
+const passForm = ref(null)
+const rule = ref({
+    newPassword: [
+        { required: true, message: '请输入新密码', trigger: 'blur' },
+        { min: 6, max: 20, message: '密码长度必须在6-20之间', trigger: 'blur' }
+    ],
+    confirmPassword: [
+        { required: true, message: '请确认新密码', trigger: 'blur' },
+        { min: 6, max: 20, message: '密码长度必须在6-20之间', trigger: 'blur' },
+        { validator: validateConfirmPassword, trigger: 'blur' }
+    ]
+})
+
+function validateConfirmPassword(rule, value, callback) {
+    if (value !== form.value.newPassword) {
+        callback(new Error('两次输入的密码不一致'))
+    } else {
+        callback()
+    }
+}
+
+function btnCancle() {
+    passForm.value?.resetFields()
+    dialogFormVisible.value = false
+}
+
+function confirmChangePassword() {
+    passForm.value.validate(async (isOK) => {
+        if (isOK) {
+            await updatePassword(form.value)
+            btnCancle()
+            loginStore.token = ''
+            router.push('/login')
+        }
+    })
+}
+
+function handleCommand(command) {
+    if (command === 'changePassword') {
+        dialogFormVisible.value = true
+        form.value.oldPassword = loginStore.password
+    } else if (command === 'updateAvatar') {
+        alert('更新头像')
+    } else if (command === 'logout') {
+        loginStore.token = ''
+        router.push('/login')
+    }
+}
 </script>
 <template>
     <div class="layout">
         <div class="navBar" :class="{ collapsed: isCollapse }">
-            <el-menu default-active="/dashboard" class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen"
-                background-color="#121e41" text-color="#fff" active-text-color="#ffd04b" @close="handleClose" router>
+            <el-menu class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen" background-color="#121e41"
+                text-color="#fff" active-text-color="#ffd04b" @close="handleClose" router>
                 <el-menu-item index="/dashboard">
                     <el-icon>
                         <Odometer />
@@ -128,16 +187,17 @@ onMounted(() => {
                 <div class="setting">
                     <img class="avatar" :src="staffPhoto" alt="">
                     <span>{{ username }}</span>
-                    <el-dropdown>
-                        <el-icon>
+                    <el-dropdown @command="handleCommand">
+                        <el-icon class="setting-trigger">
                             <Setting />
                         </el-icon>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item><a href="https://github.com/arthuryin1314/heimaHr_vue3" target="_blank">项目地址</a></el-dropdown-item>
-                                <el-dropdown-item>修改密码</el-dropdown-item>
-                                <el-dropdown-item>更新头像</el-dropdown-item>
-                                <el-dropdown-item>退出登录</el-dropdown-item>
+                                <el-dropdown-item><a href="https://github.com/arthuryin1314/heimaHr_vue3"
+                                        target="_blank">项目地址</a></el-dropdown-item>
+                                <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+                                <el-dropdown-item command="updateAvatar">更新头像</el-dropdown-item>
+                                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -147,6 +207,27 @@ onMounted(() => {
             <router-view></router-view>
         </div>
     </div>
+    <el-dialog v-model="dialogFormVisible" title="修改密码" width="500">
+        <el-form :model="form" ref="passForm" :rules="rule" label-width="100px">
+            <el-form-item label="原密码" prop="oldPassword" :label-width="formLabelWidth">
+                <el-input v-model="form.oldPassword" autocomplete="off" type="password" show-password/>
+            </el-form-item>
+            <el-form-item label="新密码" prop="newPassword" :label-width="formLabelWidth">
+                <el-input v-model="form.newPassword" autocomplete="off" type="password" show-password/>
+            </el-form-item>
+            <el-form-item label="确认密码" prop="confirmPassword" :label-width="formLabelWidth">
+                <el-input v-model="form.confirmPassword" autocomplete="off" type="password" show-password/>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="btnCancle">Cancel</el-button>
+                <el-button type="primary" @click="confirmChangePassword">
+                    Confirm
+                </el-button>
+            </div>
+        </template>
+    </el-dialog>
 </template>
 
 <style scoped>
@@ -196,6 +277,11 @@ onMounted(() => {
 
 .setting :deep(.el-icon) {
     font-size: 22px;
+}
+
+.setting-trigger:focus,
+.setting-trigger:focus-visible {
+    outline: none;
 }
 
 :global(.el-popper .el-dropdown-menu a) {

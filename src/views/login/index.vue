@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { login } from '@/api/login'
 import { useLoginStore } from '@/stores/login'
 const router = useRouter()
+const loginStore = useLoginStore()
 const loginForm = ref({
     mobile: '13800000002',
     password: `itHeiMa@${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`
@@ -23,9 +24,11 @@ async function submitForm(formEl) {
     await formEl.validate(async (valid, fields) => {
         if (valid) {
             const res = await login(loginForm.value)
-            // console.log(res)
-            useLoginStore().token = res.data
-            router.push('/')
+            if (res.success) {
+                loginStore.token = res.data
+                loginStore.password = loginForm.value.password
+                router.push('/')
+            }
 
         } else {
             console.log('error submit!', fields)

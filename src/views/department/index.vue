@@ -129,6 +129,11 @@ onMounted(() => {
   color: #3a5bd6;
 }
 
+.action-trigger:focus,
+.action-trigger:focus-visible {
+  outline: none;
+}
+
 @media (max-width: 768px) {
   .tree-head,
   .tree-row {

@@ -5,7 +5,8 @@ export const useLoginStore = defineStore(
     'login',
     () => {
         const token = ref('')
-        return { token }
+        const password = ref('')
+        return { token, password }
     },
     {
         persist: true
