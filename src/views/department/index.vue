@@ -1,17 +1,62 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 //1.设置树形组件
-import { getDepartmentList } from '@/api/department'
-import { listToTree } from '@/utils/transListToTree'
-const treeRef = ref(null)
-const dataSource = ref([])
-const getDepartment = async () => {
-  const res = await getDepartmentList()
-  dataSource.value = listToTree(res.data, 0)
-}
+import { getDepartment, dataSource } from './composable/getDepartment'
 onMounted(() => {
   getDepartment()
 })
+//2.添加子部门
+import { addDepartment,getManagerList,delDepartment } from '@/api/department'
+import { ElMessage } from 'element-plus'
+const formRef = ref(null)
+const dialogFormVisible = ref(false)
+const formLabelWidth = '80px'
+const managerList = ref([])
+const form = ref({
+  code: '',
+  introduce: '',
+  managerId: '',
+  name: ''
+})
+let pid = ref('')
+const rules = ref({
+  code: [{ required: true, message: '请输入部门编码', trigger: 'blur' },],
+  name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
+  managerId: [{ required: true, message: '请输入负责人ID', trigger: 'blur' }],
+  introduce: [{ required: true, message: '请输入部门介绍', trigger: 'blur' }]
+})
+async function handleCommand(command, data) {
+  if (command === 'add') {
+    console.log('添加子部门', data)
+    dialogFormVisible.value = true
+    pid.value = data.id  // 当前部门的 id 作为父级 id
+    const res = await getManagerList()
+    managerList.value = res.data
+  } else if (command === 'edit') {
+    console.log('编辑部门', data)
+  } else if (command === 'delete') {
+    delDepartment(data.id)
+    await getDepartment()
+    ElMessage.success('删除成功')
+  }
+}
+function btnClose() {
+  formRef.value?.resetFields()
+  dialogFormVisible.value = false
+}
+function btnOk(){
+  formRef.value.validate(async (valid) => {
+    if (valid) {
+      
+        await addDepartment({
+          ...form.value,
+          pid: pid.value
+        })
+        btnClose()
+        await getDepartment()
+    }
+  })
+}
 </script>
 <template>
   <div class="department-page">
@@ -28,7 +73,7 @@ onMounted(() => {
             <div class="row-name">{{ node.label }}</div>
             <div class="row-manager">{{ data.managerName || '-' }}</div>
             <div class="row-action">
-              <el-dropdown>
+              <el-dropdown @command="handleCommand($event, data)">
                 <span class="action-trigger">
                   操作
                   <el-icon class="el-icon--right">
@@ -37,9 +82,9 @@ onMounted(() => {
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item>添加子部门</el-dropdown-item>
-                    <el-dropdown-item>编辑部门</el-dropdown-item>
-                    <el-dropdown-item>删除</el-dropdown-item>
+                    <el-dropdown-item command="add">添加子部门</el-dropdown-item>
+                    <el-dropdown-item command="edit">编辑部门</el-dropdown-item>
+                    <el-dropdown-item command="delete">删除</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -49,6 +94,32 @@ onMounted(() => {
       </el-tree>
     </div>
   </div>
+  <el-dialog v-model="dialogFormVisible" title="新增部门" width="500">
+    <el-form :model="form" :rules="rules" ref="formRef">
+      <el-form-item label="部门名称" :label-width="formLabelWidth" prop="name">
+        <el-input v-model="form.name" autocomplete="off" />
+      </el-form-item>
+      <el-form-item label="部门编码" :label-width="formLabelWidth" prop="code">
+        <el-input v-model="form.code" autocomplete="off" />
+      </el-form-item>
+      <el-form-item label="部门介绍" :label-width="formLabelWidth" prop="introduce">
+        <el-input v-model="form.introduce" autocomplete="off" type="textarea" />
+      </el-form-item>
+      <el-form-item label="负责人名称" :label-width="formLabelWidth" prop="managerId">
+        <el-select v-model="form.managerId" placeholder="请选择负责人">
+          <el-option v-for="item in managerList" :key="item.id" :label="item.username" :value="item.id" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button type="primary" @click="btnOk">
+          确定
+        </el-button>
+        <el-button @click="btnClose">取消</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -135,6 +206,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+
   .tree-head,
   .tree-row {
     grid-template-columns: 1fr 90px 70px;
