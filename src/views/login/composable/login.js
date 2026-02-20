@@ -22,9 +22,10 @@ export async function submitForm(formEl) {
     await formEl.validate(async (valid, fields) => {
         if (valid) {
             const res = await login(loginForm.value)
-            // console.log(res)
-            useLoginStore().token = res.data
-            router.push('/')
+            if (res.success) {
+                useLoginStore().token = res.data
+                router.push('/')
+            }
 
         } else {
             console.log('error submit!', fields)

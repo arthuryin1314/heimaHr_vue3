@@ -10,6 +10,7 @@ import { salaryRouter } from './salary'
 export const layoutRoutes = {
     path:'/',
     name:'layout',
+    redirect:'/dashboard',
     component:()=>import('@/views/layout/index.vue'),
     children:[
         attendanceRouter,

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
     Clock,
@@ -14,7 +14,6 @@ import {
     UserFilled,
     Setting
 } from '@element-plus/icons-vue'
-
 const isCollapse = ref(false)
 const route = useRoute()
 
@@ -40,6 +39,18 @@ const breadcrumbItems = computed(() => {
         { label: '首页', path: '/dashboard' },
         { label: currentTitle, path: route.path }
     ]
+})
+//获取用户资料
+import { getUserInfo } from '@/api/role'
+let staffPhoto = ref('')
+let username = ref('')
+async function getUser() {
+    const res = await getUserInfo()
+    staffPhoto.value = res.data?.staffPhoto || ''
+    username.value = res.data?.username || ''
+}
+onMounted(() => {
+    getUser()
 })
 </script>
 <template>
@@ -115,7 +126,21 @@ const breadcrumbItems = computed(() => {
                     </el-breadcrumb>
                 </div>
                 <div class="setting">
-                    <el-icon><Setting /></el-icon>
+                    <img class="avatar" :src="staffPhoto" alt="">
+                    <span>{{ username }}</span>
+                    <el-dropdown>
+                        <el-icon>
+                            <Setting />
+                        </el-icon>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item><a href="https://github.com/arthuryin1314/heimaHr_vue3" target="_blank">项目地址</a></el-dropdown-item>
+                                <el-dropdown-item>修改密码</el-dropdown-item>
+                                <el-dropdown-item>更新头像</el-dropdown-item>
+                                <el-dropdown-item>退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
                 </div>
             </div>
 
@@ -153,17 +178,29 @@ const breadcrumbItems = computed(() => {
 }
 
 .setting {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
+    gap: 8px;
     color: #475569;
     background: transparent;
+    font-size: 14px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e2e8f0;
 }
 
 .setting :deep(.el-icon) {
     font-size: 22px;
+}
+
+:global(.el-popper .el-dropdown-menu a) {
+    color: inherit;
+    text-decoration: none;
 }
 
 .navBar {

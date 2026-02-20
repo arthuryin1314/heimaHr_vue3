@@ -1,6 +1,10 @@
-<script setup></script>
+<script setup>
+import { getDashboardData } from '@/api/dashboard';
+import { onMounted } from 'vue';
+onMounted(()=>{
+  getDashboardData()
+})
+</script>
 <template>
-  <div class="salary-index">
-    <h1>主页</h1>
-  </div>
+  <div>Dashboard</div>
 </template>

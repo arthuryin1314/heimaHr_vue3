@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus'
+import { useLoginStore } from '@/stores/login';
+import router from '@/router';
 const request = axios.create({
   baseURL: '/api',
   timeout: 1000,
@@ -9,6 +11,10 @@ const request = axios.create({
 // 添加请求拦截器
 request.interceptors.request.use(function (config) {
     // 在发送请求之前做些什么
+    const token = useLoginStore().token
+    if(token){
+      config.headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`
+    }
     return config;
   }, function (error) {
     // 对请求错误做些什么
@@ -20,11 +26,26 @@ request.interceptors.response.use(function (response) {
     // 2xx 范围内的状态码都会触发该函数。
     // 对响应数据做点什么
     const res = response.data
+    if (res.success) {
+      ElMessage({
+          message: res.message,
+          type: 'success',
+      })
+      return res;
+    }
+
     ElMessage({
-        message: res.message,
-        type: 'success',
+        message: res.message || '请求失败',
+        type: 'error',
     })
-    return res;
+
+    if (res.code === 10002) {
+      const loginStore = useLoginStore()
+      loginStore.token = ''
+      router.replace('/login')
+    }
+
+    return Promise.reject(res);
   }, function (error) {
     // 超出 2xx 范围的状态码都会触发该函数。
     // 对响应错误做点什么
