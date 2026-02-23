@@ -4,6 +4,7 @@ import { listToTree } from '@/utils/transListToTree'
 const dataSource = ref([])
 export const getDepartment = async () => {
   const res = await getDepartmentList()
-  dataSource.value = listToTree(res.data, 0)
+  const DepartmentList = res.data
+  dataSource.value = listToTree(DepartmentList, 0)
 }
-export { dataSource }
+export { dataSource}

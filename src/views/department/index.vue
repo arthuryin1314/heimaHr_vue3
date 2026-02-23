@@ -1,12 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 //1.设置树形组件
-import { getDepartment, dataSource } from './composable/getDepartment'
+import { getDepartment, dataSource} from './composable/getDepartment'
 onMounted(() => {
   getDepartment()
 })
-//2.添加子部门
-import { addDepartment,getManagerList,delDepartment } from '@/api/department'
+//2.添加子部门，编辑部门，删除部门
+import { addDepartment,getManagerList,delDepartment,getDepartmentDetail,editDepartment } from '@/api/department'
 import { ElMessage } from 'element-plus'
 const formRef = ref(null)
 const dialogFormVisible = ref(false)
@@ -16,8 +16,11 @@ const form = ref({
   code: '',
   introduce: '',
   managerId: '',
-  name: ''
+  name: '',
+  id:'',
+  createTime:''
 })
+let isAdd = ref(null)
 let pid = ref('')
 const rules = ref({
   code: [{ required: true, message: '请输入部门编码', trigger: 'blur' },],
@@ -25,15 +28,43 @@ const rules = ref({
   managerId: [{ required: true, message: '请输入负责人ID', trigger: 'blur' }],
   introduce: [{ required: true, message: '请输入部门介绍', trigger: 'blur' }]
 })
+const diaTitle = computed(()=>{
+  return isAdd.value?'添加子部门':'编辑部门'
+})
 async function handleCommand(command, data) {
   if (command === 'add') {
-    console.log('添加子部门', data)
-    dialogFormVisible.value = true
+    // console.log('添加子部门', data)
+    isAdd.value = true
+    formRef.value?.resetFields()
+    form.value = {
+      code: '',
+      introduce: '',
+      managerId: '',
+      name: '',
+      id: '',
+      createTime: ''
+    }
     pid.value = data.id  // 当前部门的 id 作为父级 id
     const res = await getManagerList()
     managerList.value = res.data
+    dialogFormVisible.value = true
   } else if (command === 'edit') {
-    console.log('编辑部门', data)
+    // console.log('编辑部门', data.id)
+    isAdd.value = false
+    const managerRes = await getManagerList()
+    managerList.value = managerRes.data
+    const res = await getDepartmentDetail(data.id)
+    const detail = res.data
+    form.value = {
+      code: detail.code,
+      introduce: detail.introduce,
+      managerId: detail.managerId,
+      name: detail.name,
+      id: detail.id,
+      createTime: detail.createTime
+    }
+    pid.value = detail.pid
+    dialogFormVisible.value = true
   } else if (command === 'delete') {
     delDepartment(data.id)
     await getDepartment()
@@ -47,13 +78,17 @@ function btnClose() {
 function btnOk(){
   formRef.value.validate(async (valid) => {
     if (valid) {
-      
-        await addDepartment({
+      const payload = {
           ...form.value,
-          pid: pid.value
-        })
-        btnClose()
-        await getDepartment()
+          pid: pid.value,
+        }
+        if (isAdd.value) {
+          await addDepartment(payload)
+        } else {
+          await editDepartment(payload)
+        }
+      btnClose()
+      await getDepartment()
     }
   })
 }
@@ -94,7 +129,7 @@ function btnOk(){
       </el-tree>
     </div>
   </div>
-  <el-dialog v-model="dialogFormVisible" title="新增部门" width="500">
+  <el-dialog v-model="dialogFormVisible" :title="diaTitle" width="500">
     <el-form :model="form" :rules="rules" ref="formRef">
       <el-form-item label="部门名称" :label-width="formLabelWidth" prop="name">
         <el-input v-model="form.name" autocomplete="off" />
