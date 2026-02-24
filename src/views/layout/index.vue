@@ -16,6 +16,7 @@ import {
 } from '@element-plus/icons-vue'
 import { getUserInfo, updatePassword } from '@/api/role'
 import { useLoginStore } from '@/stores/login'
+import { usuRoleStore } from '@/stores/role'
 
 const router = useRouter()
 const route = useRoute()
@@ -50,6 +51,7 @@ const staffPhoto = ref('')
 const username = ref('')
 async function getUser() {
     const res = await getUserInfo()
+    usuRoleStore().roles = res.data.roles.menus
     staffPhoto.value = res.data?.staffPhoto || ''
     username.value = res.data?.username || ''
 }
