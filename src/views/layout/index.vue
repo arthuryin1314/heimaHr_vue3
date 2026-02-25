@@ -22,21 +22,29 @@ const router = useRouter()
 const route = useRoute()
 const loginStore = useLoginStore()
 const isCollapse = ref(false)
-
-const menuTitleMap = {
-    '/dashboard': '首页',
-    '/department': '组织',
-    '/role': '角色',
-    '/employee': '员工',
-    '/authorize': '权限',
-    '/attendance': '考勤',
-    '/review': '审批',
-    '/salary': '工资',
-    '/insurance': '社保'
-}
-
+const menuTitleMap = [
+    {index: '/dashboard', title: '首页',perid:'dashboard',icon: Odometer},
+    {index: '/department', title: '组织',perid:'department',icon: OfficeBuilding},
+    {index: '/role', title: '角色',perid:'role',icon: UserFilled},
+    {index: '/employee', title: '员工',perid:'employee',icon: User},
+    {index: '/authorize', title: '权限',perid:'permission',icon: Key},
+    {index: '/attendance', title: '考勤',perid:'attendance',icon: Clock},
+    {index: '/review', title: '审批',perid:'approval',icon: Stamp},
+    {index: '/salary', title: '工资',perid:'salary',icon: Money},
+    {index: '/insurance', title: '社保',perid:'social',icon: Tickets}
+]
+const RoleStore = usuRoleStore()
+const permissionMenu = computed(()=>{
+    const perMenu = [{index: '/dashboard', title: '首页',perid:'dashboard',icon: Odometer}]
+    menuTitleMap.forEach(item=>{
+        if(RoleStore.roles.includes(item.perid)){
+            perMenu.push(item)
+        }
+    })
+    return perMenu
+})
 const breadcrumbItems = computed(() => {
-    const currentTitle = menuTitleMap[route.path]
+    const currentTitle = permissionMenu.value.find(item => item.index === route.path)?.title || ''
     if (!currentTitle || route.path === '/dashboard') {
         return [{ label: '首页', path: '/dashboard' }]
     }
@@ -119,59 +127,11 @@ function handleCommand(command) {
         <div class="navBar" :class="{ collapsed: isCollapse }">
             <el-menu class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen" background-color="#121e41"
                 text-color="#fff" active-text-color="#ffd04b" @close="handleClose" router>
-                <el-menu-item index="/dashboard">
+                <el-menu-item v-for="(item,index) in permissionMenu" :key="index" :index="item.index">
                     <el-icon>
-                        <Odometer />
+                        <component :is="item.icon" />
                     </el-icon>
-                    <template #title>首页</template>
-                </el-menu-item>
-                <el-menu-item index="/department">
-                    <el-icon>
-                        <OfficeBuilding />
-                    </el-icon>
-                    <template #title>组织</template>
-                </el-menu-item>
-                <el-menu-item index="/role">
-                    <el-icon>
-                        <UserFilled />
-                    </el-icon>
-                    <template #title>角色</template>
-                </el-menu-item>
-                <el-menu-item index="/employee">
-                    <el-icon>
-                        <User />
-                    </el-icon>
-                    <template #title>员工</template>
-                </el-menu-item>
-                <el-menu-item index="/authorize">
-                    <el-icon>
-                        <Key />
-                    </el-icon>
-                    <template #title>权限</template>
-                </el-menu-item>
-                <el-menu-item index="/attendance">
-                    <el-icon>
-                        <Clock />
-                    </el-icon>
-                    <template #title>考勤</template>
-                </el-menu-item>
-                <el-menu-item index="/review">
-                    <el-icon>
-                        <Stamp />
-                    </el-icon>
-                    <template #title>审批</template>
-                </el-menu-item>
-                <el-menu-item index="/salary">
-                    <el-icon>
-                        <Money />
-                    </el-icon>
-                    <template #title>工资</template>
-                </el-menu-item>
-                <el-menu-item index="/insurance">
-                    <el-icon>
-                        <Tickets />
-                    </el-icon>
-                    <template #title>社保</template>
+                    <template #title>{{ item.title }}</template>
                 </el-menu-item>
             </el-menu>
             <el-button class="collapse-btn" :icon="Menu" @click="isCollapse = !isCollapse"></el-button>
